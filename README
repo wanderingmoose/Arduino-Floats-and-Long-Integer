@@ -1,0 +1,28 @@
+
+All this is from this web pages:
+https://industruino.com/blog/our-news-1/post/modbus-tips-for-industruino-26#blog_content
+They did the work, I just wanted it for my future references. Pages disappear so, did not want to loose the information.
+If get a chance, head to there site and look around. They have done some great work with the Arduino system.
+
+
+Modbus is a popular industrial serial communications protocol, available over Ethernet as Modbus TCP and over RS485 as Modbus RTU. 
+The Industruino INDIO has an RS485 port so can act as a Modbus RTU Master or Slave. 
+If you want to use Modbus TCP, you will need to add an Ethernet module to your Industruino PROTO or INDIO.
+
+For examples, see:
+
+Modbus TCP over Ethernet 
+Modbus RTU over RS485: INDIO as Master, and communication between 2 or more INDIOs
+Modbus uses registers to pass data between the Master and the Slave(s). The Master is sending out periodic requests; 
+the Slave is listening for requests, reading and/or writing to the registers. The registers can have different 
+indeces on Master and Slave(s). The registers are 16-bit (standard unsigned integer on Arduino), so if you want 
+to pass data of 32-bit (float or long integer), you need to use 2 registers per value, by splitting the 32-bit value into 2x 16-bit. 
+
+NOTE: This would make sense if you have high precision numbers, e.g. a 18-bit ADC reading, the highest setting of the INDIO.
+If you use less than 18-bit precision, it makes sense to convert your float to a 16-bit integer and use only 1 register. 
+E.g. you can get a precision of 3 decimal digits in 4-20mA readings by multiplying them by 1000 and converting to int type. 
+This would get you a maximum value of 20000 which fits in the 16-bit int type. 
+
+Here are 2 pieces of Arduino code to handle the conversion of 32-bit FLOAT and LONG numbers to 16-bit unsigned 
+integers used for Modbus registers. Use this code in your Master and Slave units as needed. 
+It should be easy to modify it for 32-bit unsigned long type numbers too.
