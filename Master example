@@ -1,0 +1,118 @@
+#include <Wire.h>
+#include <Indio.h>
+#include <SimpleModbusMaster.h>
+#include <UC1701.h>
+static UC1701 lcd;
+
+/*
+  this example uses holding registers:
+  [0-3] sends 4 registers (int) to the slave: status of 4 LEDs = digital outputs of the slave
+  [6-7] reads 2 registers (int) from the slave: status of 2 PUSH BUTTONS = digital inputs of the slave
+  actually we read 4 registers but only 2 are connected to buttons
+*/
+
+//////////////////// Port information ///////////////////
+#define baud 9600  // use 9600 on D21G
+#define timeout 1000
+#define polling 20 // the scan rate, standard was 200
+#define retry_count 10
+
+// used to toggle the receive/transmit pin on the driver
+#define TxEnablePin 9                                                           // INDUSTRUINO RS485
+#define SlaveID 2
+
+// The total amount of available memory on the master to store data
+#define TOTAL_NO_OF_REGISTERS 8                                          // e.g. INDIO digital I/O
+
+// This is the easiest way to create new packets
+// Add as many as you want. TOTAL_NO_OF_PACKETS
+// is automatically updated.
+enum
+{
+  PACKET1,                                          // set 4 registers
+  PACKET2,                                          // read 4 registers
+  TOTAL_NO_OF_PACKETS // leave this last entry
+};
+
+// Create an array of Packets to be configured
+Packet packets[TOTAL_NO_OF_PACKETS];
+
+// Masters register array
+unsigned int regs[TOTAL_NO_OF_REGISTERS];
+unsigned long previousMillis;
+int counter = 0;
+
+void setup()
+{
+
+  
+  lcd.begin();
+  lcd.clear();
+  lcd.setCursor(1, 1);
+  lcd.print("hello Industruino!");
+  lcd.setCursor(1, 3);
+  lcd.print("Modbus RTU Master");
+
+  analogWrite(26, 100);  // LCD backlight
+
+  Indio.digitalMode(1, OUTPUT);
+  Indio.digitalMode(2, OUTPUT);
+  Indio.digitalMode(3, OUTPUT);
+  Indio.digitalMode(4, OUTPUT);
+
+  // Initialize each packet: packet, slave-id, function, start of slave index, number of regs, start of master index
+  // set 4 registers
+  // read 4 registers
+
+  modbus_construct(&packets[PACKET1], SlaveID, PRESET_MULTIPLE_REGISTERS, 0, 4, 0);
+  modbus_construct(&packets[PACKET2], SlaveID, READ_HOLDING_REGISTERS, 4, 4, 4);
+
+  // Initialize the Modbus Finite State Machine
+  modbus_configure(&Serial, baud, SERIAL_8N2, timeout, polling, retry_count, TxEnablePin, packets, TOTAL_NO_OF_PACKETS, regs);
+  // Serial = INDUSTRUINO RS485  -- Serial1 on 32u4/1286
+}
+
+void loop()
+{
+//  unsigned long moment = millis();
+  modbus_update();                          // send Master request to Slave, as defined above
+//  Serial.println(millis()-moment);
+  // frequency is limited by polling parameter
+
+  // the library manual suggests not using long delays but an interval instead
+  // the below section updates a counter after an interval, 
+  // and switches ON one LED of 8: 4 on the Master and 4 on the Slave
+  // first switch all OFF
+  // then if counter points to first half, switch ON one on Master
+  // if counter points to second half, switch ON one on Slave 
+  
+  if (millis() - previousMillis > 500) {
+    counter++;
+    lcd.setCursor(1, 5);
+    lcd.print("Counter: ");
+    lcd.print(counter % 8 + 1);
+    
+    for (int u = 0; u < 4; u++) {       // set all to 0 on Master
+      Indio.digitalWrite(u + 1, LOW);
+    }
+    for (int u = 0; u < 4; u++) {       // set [0-3] to 0 on Slave
+      regs[u] = 0;
+    }
+    if (counter % 8 < 4) {              // if counter at first 4
+      Indio.digitalWrite(counter % 8 + 1, HIGH);  // set 1 on Master
+    }
+    else {
+      regs[counter % 8 - 4] = 1;         // set one of [0-3] to 1 on Slave
+    }
+    previousMillis = millis();
+  }
+
+  // this section prints the status of the 2 switch registers on the Slave
+  
+  lcd.setCursor(1, 6);
+  if (regs[6]) lcd.print("Switch 7: ON ");    // print status of switch on Slave
+  else lcd.print("Switch 7: OFF");
+  lcd.setCursor(1, 7);
+  if (regs[7]) lcd.print("Switch 8: ON ");    // print status of switch on Slave
+  else lcd.print("Switch 8: OFF");
+}
