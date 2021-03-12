@@ -2,9 +2,9 @@
 All this is from this web pages:
 https://industruino.com/blog/our-news-1/post/modbus-tips-for-industruino-26#blog_content
 They did the work, I just wanted it for my future references. Pages disappear so, did not want to loose the information.
-If get a chance, head to there site and look around. They have done some great work with the Arduino system.
+If you get a chance, head to there site and look around. They have done some great work with the Arduino system.
 
-
+*************************************************
 Modbus is a popular industrial serial communications protocol, available over Ethernet as Modbus TCP and over RS485 as Modbus RTU. 
 The Industruino INDIO has an RS485 port so can act as a Modbus RTU Master or Slave. 
 If you want to use Modbus TCP, you will need to add an Ethernet module to your Industruino PROTO or INDIO.
