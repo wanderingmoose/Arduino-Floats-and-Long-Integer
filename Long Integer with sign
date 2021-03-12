@@ -1,0 +1,83 @@
+/*
+ * INDUSTRUINO ModBus help (D21G)
+ * modbus registers are 16-bit unsigned integers
+ * to pass a long variable (32-bit), it needs to be split into 2 registers
+ * use the below functions to achieve this
+ * Tom Tobback Nov 2017
+ */
+
+void setup() {
+
+  SerialUSB.begin(9600);
+  while (!SerialUSB);
+
+}
+
+void loop() {
+
+  SerialUSB.print("Enter a 'long' number in the Serial Monitor: ");
+
+  long long_number = 0;
+  while (long_number == 0) {
+    long_number = SerialUSB.parseInt();                     // get a long from Serial Monitor input
+  }
+  SerialUSB.println(long_number);                         // print 
+
+  unsigned int reg0 = l_2uint_int1(long_number);           // split the long into 2 unsigned integers
+  unsigned int reg1 = l_2uint_int2(long_number);
+
+  SerialUSB.print("Long number (32-bit) to be converted: ");
+  SerialUSB.println(long_number);
+  SerialUSB.print("Split into 2 unsigned integers (16-bit): ");
+  SerialUSB.print(reg0);
+  SerialUSB.print("\t");
+  SerialUSB.println(reg1);
+
+  long long_reconstructed = l_2uint_long(reg0, reg1);    // reconstruct the long from 2 unsigned integers
+
+  SerialUSB.print("Reconstructed to long (32-bit): ");
+  SerialUSB.println(long_reconstructed);
+
+  SerialUSB.println();
+}
+
+unsigned int l_2uint_int1(long long_number) {             // split the long and return first unsigned integer
+
+  union l_2uint {
+    long l;
+    uint16_t i[2];
+  };
+
+  union l_2uint l_number;
+  l_number.l = long_number;
+
+  return l_number.i[0];
+}
+
+unsigned int l_2uint_int2(long long_number) {            // split the long and return first unsigned integer
+
+  union l_2uint {
+    long l;
+    uint16_t i[2];
+  };
+
+  union l_2uint l_number;
+  l_number.l = long_number;
+
+  return l_number.i[1];
+}
+
+long l_2uint_long(unsigned int uint1, unsigned int uint2) {    // reconstruct the long from 2 unsigned integers
+
+  union l_2uint {
+    long l;
+    uint16_t i[2];
+  };
+
+  union l_2uint l_number;
+  l_number.i[0] = uint1;
+  l_number.i[1] = uint2;
+
+  return l_number.l;
+
+}
