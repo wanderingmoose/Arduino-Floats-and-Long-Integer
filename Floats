@@ -1,0 +1,83 @@
+/*
+ * INDUSTRUINO ModBus help (D21G)
+ * modbus registers are 16-bit unsigned integers
+ * to pass a float variable (32-bit), it needs to be split into 2 registers
+ * use the below functions to achieve this
+ * Tom Tobback Nov 2017
+ */
+
+
+void setup() {
+
+  SerialUSB.begin(9600);
+  while (!SerialUSB);
+}
+
+void loop() {
+
+  SerialUSB.print("Enter a float number in the Serial Monitor: ");
+
+  float float_number = 0;
+  while (float_number == 0) {
+    float_number = SerialUSB.parseFloat();                     // get a float from Serial Monitor input
+  }
+  SerialUSB.println(float_number, 15);                         // print with 15 decimals
+
+  unsigned int reg0 = f_2uint_int1(float_number);           // split the float into 2 unsigned integers
+  unsigned int reg1 = f_2uint_int2(float_number);
+
+  SerialUSB.print("Float number (32-bit) to be converted: ");
+  SerialUSB.println(float_number);
+  SerialUSB.print("Split into 2 unsigned integers (16-bit): ");
+  SerialUSB.print(reg0);
+  SerialUSB.print("\t");
+  SerialUSB.println(reg1);
+
+  float float_reconstructed = f_2uint_float(reg0, reg1);    // reconstruct the float from 2 unsigned integers
+
+  SerialUSB.print("Reconstructed to float (32-bit): ");
+  SerialUSB.println(float_reconstructed, 15);
+
+  SerialUSB.println();
+}
+
+unsigned int f_2uint_int1(float float_number) {             // split the float and return first unsigned integer
+
+  union f_2uint {
+    float f;
+    uint16_t i[2];
+  };
+
+  union f_2uint f_number;
+  f_number.f = float_number;
+
+  return f_number.i[0];
+}
+
+unsigned int f_2uint_int2(float float_number) {            // split the float and return first unsigned integer
+
+  union f_2uint {
+    float f;
+    uint16_t i[2];
+  };
+
+  union f_2uint f_number;
+  f_number.f = float_number;
+
+  return f_number.i[1];
+}
+
+float f_2uint_float(unsigned int uint1, unsigned int uint2) {    // reconstruct the float from 2 unsigned integers
+
+  union f_2uint {
+    float f;
+    uint16_t i[2];
+  };
+
+  union f_2uint f_number;
+  f_number.i[0] = uint1;
+  f_number.i[1] = uint2;
+
+  return f_number.f;
+
+}
