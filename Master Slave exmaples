@@ -1,0 +1,123 @@
+Good Master/Slave test programs.
+https://industruino.com/blog/our-news-1/post/modbus-rtu-master-and-slave-14
+
+Using the sample library as in the Modbus RTU Master post, SimpleModbusMaster and SimpleModbusSlave (versions V2rev2 and V10 respectively) we can establish communication over RS485 between 2 or more IND.I/Os, with one acting as the Master and the other one(s) as the Slave(s). This is one way of expanding the Industruino's number of I/O pins.
+
+We tested this with 2 IND.I/O kits, as shown on the left.
+
+RS485 connections are simple: A to A, B to B,and GND to GND
+
+(grey - white -black wires in the picture)
+
+To keep it simple, let’s only consider the Modbus HOLDING REGISTERS, which allow:
+
+
+Reading data from the Slave with Modbus function 3: READ_HOLDING_REGISTERS
+
+writing to the Slave with Modbus function 16: PRESET_MULTIPLE_REGISTERS
+
+This allows us to read from/write to the Slave. The registers use 16-bit integers so can be used for digital as well as analog data values.
+
+
+See below for example sketches.
+
+
+
+The Master is sending out periodic requests with these 2 functions; the Slave is listening for requests, both using modbus_update() function in the sketch loop. Main parameters:
+
+Slave ID (example: 2)
+
+Baud rate (use 9600 on the Industruino D21G, higher rates may not work)
+
+Name of the Serial port (Serial on IND.I/O)
+
+RS485 Tx enable pin (9 on IND.I/O)
+
+Additional Master parameters: timeout, polling, retry_count
+
+The library comes with an excellent SimpleModbusMasterManual.
+Note 1: Latency
+Modbus RTU does not give instant communication; there is a minimum latency of e.g. 20 milliseconds on the Master side (see this explanation) and also the Slave needs time to go back to Idle state, as explained in the SimpleModbusMasterManual in above link:
+
+The fifth parameter, the polling delay, is sometimes the most confusing to explain to users. It is the resting period between requests from the master to allow a slave to enter its idle state. This is because a slave also runs on an FSM and can only start responding to a request once the idle state is reached. Some quick acting slaves will revert to the idle state within 10ms but the usual slave will take around 100ms – 200ms. 
+
+Experiments show that with a baud rate of 115200, the modbus_update() function on the Slave takes around 15-20ms (only when a request is received), and around 10ms on the Master.
+
+ 
+Note 2: Using delay();
+The SimpleModbusMasterManual recommends not using delay() of more than 100 msec:
+
+Using delays longer than 100ms will affect the FSM negatively. It is not good practice to use large delays when coding. Rather use millis() to form some sort of crude multi-tasking. 
+
+See Master sketch example.
+
+ 
+Note 3: RS485 termination resistors
+The SimpleModbusMasterManual recommends the following termination resistor setup:
+
+ 
+MASTER: 
+
+120R between A and B    IND.I/O: leave middle jumper
+
+510R pull-up on D+=A     IND.I/O: leave top jumper
+
+510R pull-down on D-=B    IND.I/O: leave bottom jumper
+
+100R in series on GND    IND.I/O no resistor, add external if needed
+
+ 
+SLAVE: 
+
+120R between A and B    IND.I/O: leave middle jumper
+
+100R in series on GND    IND.I/O no resistor, add external if needed
+
+no pull-up or pull-down    IND.I/O: remove top and bottom jumpers
+
+See picture on the left showing the 3 jumpers in place.
+
+Example of Modbus RTU communication between 2 IND.I/Os, Master and Slave
+ 
+This example has the following setup:
+
+ 
+Master
+
+IND.I/O, Vin = 10V
+
+4 LEDs connected to digital CH1-4 (yellow)
+
+3 wires of RS485 
+
+ 
+Slave
+
+IND.I/O, Vin = 10V
+
+4 LEDs connected to digital CH1-4 (blue)
+
+2 push buttons connected to digital CH7-8
+
+3 wires of RS485 
+
+ 
+Functionality to illustrate I/O over Modbus RTU:
+
+the Master controls the 4+4 LEDs to switch ON one at a time, one by one
+
+the Master uses direct Indio.digitalWrite commands for the 4 first LEDs
+
+the Master uses Modbus registers [0-3] to control the 4 LEDs on the Slave
+
+the Master polls registers [6-7] for the status of 2 push buttons on the Slave
+
+the Slave updates its 4 LEDs with registers [0-3]
+
+the Slave updates registers [6-7] with the status of the 2 push buttons
+
+The communication works well with a baud rate of 9600 up to 115200, and over a 10 meter thick cable as shown in picture on the left.
+Link to 2 videos showing the system:
+short cable
+long cable
+The video shows the LEDs blinking one by one, on the Master and Slave, and the status of the buttons connected to the Slave, on the Master LCD screen.
